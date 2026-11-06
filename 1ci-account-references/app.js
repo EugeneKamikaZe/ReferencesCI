@@ -600,9 +600,9 @@ const languages = [
 let toastTimer;
 
 const profile = {
-    first: 'Eugene',
-    last: 'Egorov',
-    country: 'Russian Federation',
+    first: 'Alex',
+    last: 'User',
+    country: '',
     phone: '',
     skype: '',
     position: '',
@@ -1219,14 +1219,14 @@ function loginPage() {
             <div class="field">
               <label for="login-email">Email address</label>
               <input id="login-email" type="email" autocomplete="username"
-                value="test@test.test" placeholder="name@company.com" required>
+                value="demo@example.invalid" placeholder="name@example.invalid" required>
             </div>
 
             <div class="field">
               <label for="login-password">Password</label>
               <div class="password-wrap">
                 <input id="login-password" type="password"
-                  value="Test123!" autocomplete="current-password" placeholder="Enter your password" required>
+                  value="DemoOnly123!" autocomplete="current-password" placeholder="Enter your password" required>
                 <button type="button" class="password-toggle"
                   data-action="toggle-password" aria-label="Show password"
                   aria-pressed="false">${ico('eye')}</button>
@@ -1327,13 +1327,13 @@ function profileCard() {
         <div class="profile-identity"><div class="flex between"><div class="avatar large">${initials()}</div><button type="button" class="icon-button" data-go="account" aria-label="Edit account">${ico(
             'edit',
         )}</button></div>
-        <h2>${fullName()}</h2><span class="badge">Community member</span><div class="profile-meta muted">Account ID 299<br><span style="color:var(--text)">eego@1ci.com</span></div></div>
-        <div class="profile-contact"><small class="muted">Your personal contact</small><div class="flex contact-person"><div class="avatar">NS</div><div><button type="button" class="text-button contact-name" data-action="manager">Nina Sitkina</button><p class="muted">Sales support manager</p></div></div></div>
+        <h2>${fullName()}</h2><span class="badge">Community member</span><div class="profile-meta muted">Account ID 100001<br><span style="color:var(--text)">alex.user@example.invalid</span></div></div>
+        <div class="profile-contact"><small class="muted">Your personal contact</small><div class="flex contact-person"><div class="avatar">SM</div><div><button type="button" class="text-button contact-name" data-action="manager">Sam Manager</button><p class="muted">Sales support manager</p></div></div></div>
         <div class="profile-partner"><small class="muted">Your 1Ci partner</small><h3 style="margin-top:8px">${
-            partnerLinked ? 'Partner Company' : 'No partner connected'
+            partnerLinked ? 'Demo Partner Company' : 'No partner connected'
         }</h3>${
             partnerLinked
-                ? '<p class="muted" style="font-size:12px">Account ID 6363 · test@1ci.app</p>'
+                ? '<p class="muted" style="font-size:12px">Account ID 100002 · demo.partner@example.invalid</p>'
                 : ''
         }<button type="button" class="btn small" data-go="partnership">View partnership</button></div>
     </section>`;
@@ -1607,7 +1607,7 @@ function profileContent() {
         <div>
           <small class="muted">Email address</small>
           <div class="flex" style="margin-top:5px;flex-wrap:wrap">
-            <strong>eego@1ci.com</strong><span class="badge success">Verified</span>
+            <strong>alex.user@example.invalid</strong><span class="badge success">Verified</span>
           </div>
         </div>
         <button type="button" class="btn small"
@@ -1623,7 +1623,7 @@ function profileContent() {
 
       <div class="data-grid">
         ${[
-            ['Company', 'test'],
+            ['Company', 'Demo Partner Company'],
             ['Number of employees', 'Not provided'],
             ['Year of foundation', 'Not provided'],
             ['Website', 'Not provided'],
@@ -1672,7 +1672,7 @@ function accountPage() {
             <div>
               <h2>${fullName()}</h2>
               <div class="summary-meta muted">
-                <span>Account ID 299</span><span>Registered: 19 August 2019</span>
+                <span>Account ID 100001</span><span>Registered: 1 January 2024</span>
               </div>
               ${
                   partnerLinked
@@ -1719,7 +1719,7 @@ function accountPage() {
 
           <small class="muted">Sales support manager</small>
           <button type="button" class="text-button" data-action="manager"
-            style="display:block;margin-top:5px">Nina Sitkina</button>
+            style="display:block;margin-top:5px">Sam Manager</button>
 
           <hr>
           <button type="button" class="btn small"
@@ -2526,19 +2526,19 @@ function handleAction(action, button) {
         const partner = action === 'partner-info';
         const contact = partner
             ? {
-                  name: 'tester testerLastName',
-                  email: 'test@1ci.app',
-                  phone: '+1 202 555 0148',
+                  name: 'Demo Partner',
+                  email: 'demo.partner@example.invalid',
+                  phone: '+1 202 555 0100',
               }
-            : { name: 'Nina Sitkina', email: 'nina.sitkina@1ci.com' };
+            : { name: 'Sam Manager', email: 'sam.manager@example.invalid' };
         openContactPopover(
             partner ? 'Your 1Ci Partner' : 'Sales Support Manager',
             `
             <div class="contact-dialog-heading"><div class="avatar large">${
-                partner ? 'TP' : 'NS'
+                partner ? 'DP' : 'SM'
             }</div><div><h3>${esc(contact.name)}</h3><span class="muted">${
                 partner
-                    ? 'Connected partner · ID 6363'
+                    ? 'Connected partner · ID 100002'
                     : 'Your personal contact'
             }</span></div></div>
             <dl class="contact-details"><div><dt>Name</dt><dd>${esc(
@@ -2547,7 +2547,7 @@ function handleAction(action, button) {
                 contact.email
             }">${esc(contact.email)}</a></dd></div>${
                 partner
-                    ? `<div><dt>Phone</dt><dd><a href="tel:+12025550148">${esc(
+                    ? `<div><dt>Phone</dt><dd><a href="tel:+12025550100">${esc(
                           contact.phone,
                       )}</a></dd></div>`
                     : ''
@@ -2674,7 +2674,7 @@ function handleAction(action, button) {
         <div class="field">
           <label for="request-email">Email address</label>
           <input id="request-email" type="email" autocomplete="email"
-            placeholder="name@company.com" required>
+            placeholder="name@example.invalid" required>
         </div>
         <div class="dialog-actions">
           <button type="button" class="btn" data-close>Cancel</button>
@@ -3316,7 +3316,7 @@ modal.addEventListener('close', () => {
 /* Shared navigation popups and additional reference screens. */
 function personalMenuContent() {
     const current = (id) => (page === id ? 'aria-current="page"' : '');
-    return `        <div class="popup-identity"><strong>${fullName()}</strong><small class="muted">eego@1ci.com</small></div>
+    return `        <div class="popup-identity"><strong>${fullName()}</strong><small class="muted">alex.user@example.invalid</small></div>
         <button type="button" data-go="account" ${current('account')}>${ico(
             'user',
         )}Account</button>
@@ -3838,7 +3838,7 @@ function distributivesPage() {
     return shell(`<div class="page-heading"><div><h1>Distributives</h1><p>Product releases, installation packages, and components.</p></div></div>
         <section class="downloads-banner"><div><h2>Distributives</h2><p>1Ci products and the 1C:Enterprise development platform are downloaded separately from each other.</p></div><div><h2>${ico(
             'support',
-        )} Questions?</h2><p>In case of arising questions please contact us at <a href="mailto:partner@1ci.com">partner@1ci.com</a>.</p></div></section>
+        )} Questions?</h2><p>In case of arising questions please contact us at <a href="mailto:partners@example.invalid">partners@example.invalid</a>.</p></div></section>
         <form class="download-filters" onsubmit="return false"><div class="filter-fields download-filter-fields"><div class="field search-field"><label for="product-search">Product / Version / Distributive / Component</label><input type="search" id="product-search" placeholder="Search product"></div><div class="period-filter">${datePeriodControl(
             'distributives',
             'release-from',
@@ -3917,7 +3917,7 @@ function supportPage() {
             <p>Read more about <button type="button" class="text-button" data-action="policies">Support policy</button></p>
             <p>For 1C:Drive German, Polish, Turkish, and other non-English editions see <button type="button" class="text-button" data-action="drive-policies">1C:Drive Editions Support Policy</button></p>
         </section>
-        <section data-support-section="contacts" aria-labelledby="support-contacts-heading"><h2 id="support-contacts-heading">Contacts</h2><p>Website: <a href="https://support.1ci.com/" target="_blank" rel="noopener noreferrer">support.1ci.com</a></p><p>Email: <a href="mailto:support@1ci.com">support@1ci.com</a></p></section>
+        <section data-support-section="contacts" aria-labelledby="support-contacts-heading"><h2 id="support-contacts-heading">Contacts</h2><p>Website: <a href="https://support.1ci.com/" target="_blank" rel="noopener noreferrer">support.1ci.com</a></p><p>Email: <a href="mailto:support@example.invalid">support@example.invalid</a></p></section>
     </article>`);
 }
 
@@ -4209,8 +4209,8 @@ function partnershipPage() {
         )}${partnerLinked ? 'Linked' : 'Not connected'}</span></div>
         ${
             partnerLinked
-                ? `<h3>tester testerLastName <span class="muted">(test@1ci.app)</span></h3><dl class="partner-details"><div><dt>Connected Partner ID</dt><dd>6363</dd></div><div><dt>Date</dt><dd>24.11.2025</dd></div></dl><button type="button" class="btn" data-action="unlink">Cancel connection</button>`
-                : `<p class="muted">Ask your partner for their account ID to connect your accounts.</p><form id="partner-form"><div class="field"><label for="partner-id">Partner account ID</label><input id="partner-id" inputmode="numeric" pattern="6363" title="Use demo partner ID 6363" placeholder="6363" required></div><small class="muted">Demo partner ID: 6363</small><div class="dialog-actions"><button class="btn primary" type="submit">Connect partner</button></div></form>`
+                ? `<h3>Demo Partner <span class="muted">(demo.partner@example.invalid)</span></h3><dl class="partner-details"><div><dt>Connected Partner ID</dt><dd>100002</dd></div><div><dt>Date</dt><dd>01.01.2025</dd></div></dl><button type="button" class="btn" data-action="unlink">Cancel connection</button>`
+                : `<p class="muted">Ask your partner for their account ID to connect your accounts.</p><form id="partner-form"><div class="field"><label for="partner-id">Partner account ID</label><input id="partner-id" inputmode="numeric" pattern="100002" title="Use demo partner ID 100002" placeholder="100002" required></div><small class="muted">Demo partner ID: 100002</small><div class="dialog-actions"><button class="btn primary" type="submit">Connect partner</button></div></form>`
         }
     </section>`);
 }
@@ -4248,8 +4248,8 @@ function uiKitPage() {
         )}</button><button type="button" class="btn primary lg" data-action="sample-download">LG ${ico(
             'arrow',
         )}</button></div><div class="kit-samples"><button type="button" class="btn sm" data-action="sample-download">Small</button><button type="button" class="btn" data-action="sample-download">Default (no size class)</button><button type="button" class="btn lg" data-action="sample-download">Large</button></div></section>
-        <section class="card form-controls-kit" data-kit-section="forms"><h2>Form controls</h2><div class="form-stack"><div class="field"><label for="kit-email">Email address</label><input id="kit-email" type="email" placeholder="name@company.com"></div><div class="field"><label for="kit-disabled">Disabled field</label><input id="kit-disabled" value="Read-only example" disabled></div><div class="field"><label for="kit-select">Product</label><select id="kit-select"><option>1C:Drive</option><option>1C:Enterprise</option></select></div><label class="check"><input type="checkbox" checked>Receive product updates</label><p class="field-error">Example validation: please enter a valid email.</p></div></section>
-        <section class="card"><h2>Badges, avatars & icons</h2><div class="kit-samples"><span class="badge">Community member</span><span class="badge success">Linked</span><span class="badge kit-warning">Pending</span><div class="avatar">EE</div><div class="avatar large">NS</div>${[
+        <section class="card form-controls-kit" data-kit-section="forms"><h2>Form controls</h2><div class="form-stack"><div class="field"><label for="kit-email">Email address</label><input id="kit-email" type="email" placeholder="name@example.invalid"></div><div class="field"><label for="kit-disabled">Disabled field</label><input id="kit-disabled" value="Read-only example" disabled></div><div class="field"><label for="kit-select">Product</label><select id="kit-select"><option>1C:Drive</option><option>1C:Enterprise</option></select></div><label class="check"><input type="checkbox" checked>Receive product updates</label><p class="field-error">Example validation: please enter a valid email.</p></div></section>
+        <section class="card"><h2>Badges, avatars & icons</h2><div class="kit-samples"><span class="badge">Community member</span><span class="badge success">Linked</span><span class="badge kit-warning">Pending</span><div class="avatar">AU</div><div class="avatar large">SM</div>${[
             'home',
             'store',
             'bag',
