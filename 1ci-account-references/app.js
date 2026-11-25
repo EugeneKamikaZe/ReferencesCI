@@ -4,40 +4,49 @@
    STATE AND UTILITIES
    ========================= */
 
-const rawTheme = new URLSearchParams(window.location.search).get('theme');
-const requestedTheme = rawTheme === 'portal' ? 'studio' : rawTheme;
-const availableThemes = ['corporate', 'minimal', 'studio'];
-let theme = availableThemes.includes(requestedTheme)
-    ? requestedTheme
-    : rawTheme !== null
-    ? 'corporate'
-    : availableThemes.includes(document.body.dataset.theme)
-    ? document.body.dataset.theme
-    : 'corporate';
-if (rawTheme !== null && !availableThemes.includes(requestedTheme)) {
-    const url = new URL(location.href);
-    url.searchParams.set('theme', theme);
-    history.replaceState(null, '', url);
+const theme = 'corporate';
+const availableThemes = ['corporate'];
+const initialUrl = new URL(location.href);
+let normalizedUrl = false;
+for (const [key, value] of [
+    ['theme', 'corporate'],
+    ['corporateSidebar', 'classic'],
+]) {
+    if (
+        initialUrl.searchParams.has(key) &&
+        initialUrl.searchParams.get(key) !== value
+    ) {
+        initialUrl.searchParams.set(key, value);
+        normalizedUrl = true;
+    }
 }
+if (initialUrl.searchParams.has('dashboardWide')) {
+    if (
+        initialUrl.searchParams.get('dashboardWide') === 'sticky' &&
+        (!initialUrl.searchParams.has('device') ||
+            initialUrl.searchParams.get('device') === 'desktop')
+    ) {
+        initialUrl.searchParams.set('device', 'desktop-wide');
+    }
+    initialUrl.searchParams.delete('dashboardWide');
+    normalizedUrl = true;
+}
+if (normalizedUrl) history.replaceState(null, '', initialUrl);
 document.body.dataset.theme = theme;
 const themeNames = {
     corporate: 'Corporate',
-    minimal: 'Executive Minimal',
-    studio: 'Studio',
 };
 
 const notes = {
     corporate:
         'Side navigation and a spacious dashboard with the profile above the main content.',
-    minimal:
-        'Horizontal navigation, generous spacing, and understated component shapes.',
-    studio: 'Bottom navigation dock and a bento dashboard with profile, certificates, and updates.',
 };
 
 const params = new URLSearchParams(window.location.search);
 const pageNames = {
     login: 'Sign In',
     dashboard: 'Dashboard',
+    certificates: 'My Certificates',
     account: 'Account',
     distributives: 'Distributives',
     partnership: 'Partnership',
@@ -65,6 +74,7 @@ let palette = Object.hasOwn(paletteNames, params.get('palette'))
     ? params.get('palette')
     : 'corporate';
 const pageSettingDefinitions = {
+    certificates: [],
     support: [
         {
             key: 'supportSection',
@@ -78,6 +88,22 @@ const pageSettingDefinitions = {
         },
     ],
     dashboard: [
+        {
+            key: 'dashboardVersion',
+            label: 'Dashboard',
+            choices: [
+                ['existing', 'With certificates'],
+                ['new', 'No certificates'],
+            ],
+        },
+        {
+            key: 'dashboardLayout',
+            label: 'Layout',
+            choices: [
+                ['sidebar', 'Current'],
+                ['balanced', 'FAQ & Support 50/50'],
+            ],
+        },
         {
             key: 'dashboardWidgets',
             label: 'Widgets',
@@ -159,10 +185,7 @@ const inputOutlineDefinitions = Object.fromEntries(
                 letter.toUpperCase(),
             )}InputOutline`,
             label: 'Input outline',
-            choices: [
-                ['highlighted', 'Blue + shadow'],
-                ['current', 'Current'],
-            ],
+            choices: [['highlighted', 'Blue + shadow']],
         },
     ]),
 );
@@ -170,17 +193,13 @@ const inputOutlineKeys = Object.values(inputOutlineDefinitions).map(
     (definition) => definition.key,
 );
 const pageOptionDefaults = Object.fromEntries(
-    inputOutlineKeys.map((key) => [key, 'current']),
+    inputOutlineKeys.map((key) => [key, 'highlighted']),
 );
 const layoutSettingDefinitions = {
     corporateSidebar: {
         key: 'corporateSidebar',
         label: 'Sidebar',
-        choices: [
-            ['classic', 'Classic'],
-            ['rail', 'Icon rail'],
-            ['light', 'Light panel'],
-        ],
+        choices: [['classic', 'Classic']],
     },
     drawerStyle: {
         key: 'drawerStyle',
@@ -236,7 +255,8 @@ let releaseTo = isIsoDate(params.get('releaseTo'))
     ? params.get('releaseTo')
     : '';
 
-let device = ['mobile', 'tablet', 'desktop'].includes(params.get('device'))
+const availableDevices = ['mobile', 'tablet', 'desktop', 'desktop-wide'];
+let device = availableDevices.includes(params.get('device'))
     ? params.get('device')
     : 'desktop';
 let loginPosition = ['top', 'center', 'between'].includes(
@@ -479,9 +499,9 @@ window.addEventListener('message', (event) => {
     ) {
         const previous = viewState();
         const state = event.data.state || {};
-        if (Object.hasOwn(themeNames, state.theme)) theme = state.theme;
         if (Object.hasOwn(paletteNames, state.palette)) palette = state.palette;
         if (Object.hasOwn(pageNames, state.page)) page = state.page;
+        if (availableDevices.includes(state.device)) device = state.device;
         if (['split', 'centered', 'clean', 'compact'].includes(state.layout))
             loginLayout = state.layout;
         if (['top', 'center', 'between'].includes(state.position))
@@ -505,6 +525,7 @@ window.addEventListener('message', (event) => {
         const layoutChanged =
             previous.theme !== theme ||
             previous.page !== page ||
+            previous.device !== device ||
             previous.layout !== loginLayout ||
             Object.keys(pageSettingChoices).some(
                 (key) =>
@@ -600,9 +621,9 @@ const languages = [
 let toastTimer;
 
 const profile = {
-    first: 'Alex',
-    last: 'User',
-    country: '',
+    first: 'Eugene',
+    last: 'Egorov',
+    country: 'Russian Federation',
     phone: '',
     skype: '',
     position: '',
@@ -653,6 +674,8 @@ const icons = {
     tablet: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M11 18h2"/>',
     desktop:
         '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M12 17v4m-5 0h10"/>',
+    'desktop-wide':
+        '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M12 17v4m-5 0h10"/><text x="12" y="12" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor" stroke="none">XL</text>',
     home: '<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/>',
     store: '<path d="M3 3h2l3 12h10l3-9H6"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/>',
     bag: '<path d="M5 7h14l1 14H4Z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/>',
@@ -670,6 +693,8 @@ const icons = {
     eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
     edit: '<path d="m15 3 6 6-12 12H3v-6Z"/><path d="m12 6 6 6"/>',
     mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/>',
+    folder: '<path d="M3 7V5h6l2 2h10v3H5l-2 10H1Z"/><path d="M3 20h16l3-10H5"/>',
+    trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
     file: '<path d="M5 2h9l5 5v15H5Z"/><path d="M14 2v6h5M8 12h8M8 16h8"/>',
     globe: '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>',
     pin: '<path d="M19 9c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 14 0Z"/><circle cx="12" cy="9" r="2"/>',
@@ -795,18 +820,16 @@ function pageSettingControls() {
                   },
               ]
             : pageSettingDefinitions[page];
-    return settingControls(
-        [...definitions, inputOutlineDefinitions[page]],
-        `${pageNames[page]}: `,
-    );
+    const visibleDefinitions =
+        page === 'dashboard' && pageOptions.dashboardVersion === 'new'
+            ? definitions.filter(({ key }) => key !== 'dashboardWidgets')
+            : page === 'dashboard'
+            ? definitions.filter(({ key }) => key !== 'dashboardLayout')
+            : definitions;
+    return settingControls(visibleDefinitions, `${pageNames[page]}: `);
 }
 function layoutSettingControls() {
-    const definitions = [
-        ...(theme === 'corporate'
-            ? [layoutSettingDefinitions.corporateSidebar]
-            : []),
-        layoutSettingDefinitions.drawerStyle,
-    ];
+    const definitions = [layoutSettingDefinitions.drawerStyle];
     return definitions
         .map(
             (definition) =>
@@ -944,6 +967,7 @@ function renderViewer() {
                 [
                     ['login', 'Sign In'],
                     ['dashboard', 'Dashboard'],
+                    ['certificates', 'My Certificates'],
                     ['account', 'Account'],
                     ['distributives', 'Distributives'],
                     ['partnership', 'Partnership'],
@@ -954,15 +978,6 @@ function renderViewer() {
                 'data-go',
                 page,
             )}</nav></div>
-            <div class="viewer-row"><div class="control-group"><span>Style</span><nav class="switch-group" aria-label="Layout style">${buttons(
-                [
-                    ['corporate', 'Corporate'],
-                    ['studio', 'Studio'],
-                    ['minimal', 'Minimal'],
-                ],
-                'data-theme',
-                theme,
-            )}</nav></div></div>
             <div class="viewer-layout-settings" aria-label="Navigation settings">${layoutSettingControls()}</div>
         </div>
         <div class="viewer-options">
@@ -971,6 +986,7 @@ function renderViewer() {
                     ['mobile', 'Mobile · 390'],
                     ['tablet', 'Tablet · 768'],
                     ['desktop', 'Desktop'],
+                    ['desktop-wide', 'Desktop wide'],
                 ],
                 'data-device',
                 device,
@@ -1118,7 +1134,7 @@ function corporateMobileBar() {
         <button type="button" class="mobile-brand-button" data-go="dashboard" aria-label="Dashboard"><img src="${
             logoAssets.light
         }" alt="1Ci" width="40" height="34"></button>
-        <button type="button" class="avatar mobile-account-button" data-open-drawer="right" data-personal-active="${personalActive}" aria-label="Open account menu" aria-controls="corporate-mobile-drawer" aria-expanded="false">${initials()}</button>
+        <button type="button" class="avatar mobile-account-button" data-open-drawer="right" data-personal-active="${personalActive}" aria-label="Open account menu" aria-controls="corporate-mobile-drawer" aria-expanded="false" data-user-avatar>${userAvatarContent()}</button>
     </header>`;
 }
 
@@ -1146,9 +1162,9 @@ function shell(content) {
       </aside>
 
       <div class="workspace">
-        ${theme === 'corporate' ? corporateMobileBar() : ''}
+        ${corporateMobileBar()}
         <header class="topbar">
-          ${theme === 'corporate' ? sidebarToggleButton() : ''}
+          ${sidebarToggleButton()}
           <div class="breadcrumb">
             My Account / ${
                 parentGroup ? `${esc(parentGroup.label)} / ` : ''
@@ -1219,14 +1235,14 @@ function loginPage() {
             <div class="field">
               <label for="login-email">Email address</label>
               <input id="login-email" type="email" autocomplete="username"
-                value="demo@example.invalid" placeholder="name@example.invalid" required>
+                value="test@test.test" placeholder="name@company.com" required>
             </div>
 
             <div class="field">
               <label for="login-password">Password</label>
               <div class="password-wrap">
                 <input id="login-password" type="password"
-                  value="DemoOnly123!" autocomplete="current-password" placeholder="Enter your password" required>
+                  value="Test123!" autocomplete="current-password" placeholder="Enter your password" required>
                 <button type="button" class="password-toggle"
                   data-action="toggle-password" aria-label="Show password"
                   aria-pressed="false">${ico('eye')}</button>
@@ -1309,11 +1325,12 @@ function notificationRows(filter = 'all') {
         .map(
             ([time, title, text, read, date]) => `
     <div class="list-row" data-notification data-read="${read}" data-date="${date}">
-      <span class="dot notification-mark ${read ? 'read' : ''}"></span>
       <div class="row-content">
         <time class="notification-time" datetime="${date}T${time.slice(
             -5,
-        )}:00+03:00">${time}</time>
+        )}:00+03:00"><span class="dot notification-mark ${
+            read ? 'read' : ''
+        }" aria-hidden="true"></span><span>${time}</span></time>
         <strong style="font-size:12px">${title}</strong>
         <p class="muted">${text}</p>
       </div>
@@ -1324,18 +1341,22 @@ function notificationRows(filter = 'all') {
 
 function profileCard() {
     return `<section class="card profile-card">
-        <div class="profile-identity"><div class="flex between"><div class="avatar large">${initials()}</div><button type="button" class="icon-button" data-go="account" aria-label="Edit account">${ico(
+        <div class="profile-identity"><div class="flex between"><div class="avatar large" data-user-avatar>${userAvatarContent()}</div><button type="button" class="icon-button" data-go="account" aria-label="Edit account">${ico(
             'edit',
         )}</button></div>
-        <h2>${fullName()}</h2><span class="badge">Community member</span><div class="profile-meta muted">Account ID 100001<br><span style="color:var(--text)">alex.user@example.invalid</span></div></div>
-        <div class="profile-contact"><small class="muted">Your personal contact</small><div class="flex contact-person"><div class="avatar">SM</div><div><button type="button" class="text-button contact-name" data-action="manager">Sam Manager</button><p class="muted">Sales support manager</p></div></div></div>
-        <div class="profile-partner"><small class="muted">Your 1Ci partner</small><h3 style="margin-top:8px">${
-            partnerLinked ? 'Demo Partner Company' : 'No partner connected'
-        }</h3>${
-            partnerLinked
-                ? '<p class="muted" style="font-size:12px">Account ID 100002 · demo.partner@example.invalid</p>'
-                : ''
-        }<button type="button" class="btn small" data-go="partnership">View partnership</button></div>
+        <div class="profile-details"><div class="profile-name"><h2>${fullName()}</h2><span class="badge">Community member</span></div><div class="profile-meta muted">Account ID 299<br><span style="color:var(--text)">eego@1ci.com</span></div></div></div>
+        <div class="profile-contacts">
+        <div class="profile-contact"><small class="muted">Your personal contact</small><div class="flex contact-person"><div class="avatar">NS</div><div><button type="button" class="text-button contact-name" data-action="manager">Nina Sitkina</button><p class="muted">Sales support manager</p></div></div></div>
+        <div class="profile-partner"><small class="muted">Your 1Ci partner</small>
+            <div class="flex contact-person"><div class="avatar">PC</div><div>
+                ${
+                    partnerLinked
+                        ? '<button type="button" class="text-button contact-name" data-action="partner-info">Partner Company</button><p class="muted">Connected partner</p>'
+                        : '<button type="button" class="text-button contact-name" data-go="partnership">No partner connected</button><p class="muted">Connect your 1Ci partner</p>'
+                }
+            </div></div>
+        </div>
+        </div>
     </section>`;
 }
 
@@ -1373,95 +1394,173 @@ function newsCard() {
         </section>`;
 }
 
-function dashboardPage() {
-    const certificates = [
-        '1C:Enterprise<br>Junior',
-        '1C:Enterprise<br>Senior',
-        '1C:Enterprise<br>Architect',
-        '1C:Enterprise<br>Engineer',
-        '1C:Drive<br>Consultant',
-    ];
-
+const completedCertificateIds = new Set([
+    'junior',
+    'engineer',
+    'drive-junior',
+    'onboarding',
+]);
+const certificateRecords = [
+    [
+        'junior',
+        'cert-junior.svg',
+        '1C:Enterprise',
+        'Junior',
+        '2025-01-15',
+        '2027-01-15',
+    ],
+    [
+        'architect',
+        'cert-architect.svg',
+        '1C:Enterprise',
+        'Architect',
+        '2025-03-10',
+        '2027-03-10',
+    ],
+    [
+        'engineer',
+        'cert-engineer.svg',
+        '1C:Enterprise',
+        'Engineer',
+        '2025-05-20',
+        '2027-05-20',
+    ],
+    [
+        'consultant',
+        'cert-consultant.svg',
+        '1C:Drive',
+        'Consultant',
+        '2025-06-12',
+        '2027-06-12',
+    ],
+    [
+        'devops',
+        'cert-devops.svg',
+        '1C:Enterprise',
+        'DevOps',
+        '2025-08-05',
+        '2027-08-05',
+    ],
+    [
+        'performance',
+        'cert-perform-consultant.svg',
+        '1C:Enterprise',
+        'Performance Consultant',
+        '2025-09-18',
+        '2027-09-18',
+    ],
+    [
+        'drive-junior',
+        'cert-junior-drive.svg',
+        '1C:Drive',
+        'Junior',
+        '2025-10-02',
+        '2027-10-02',
+    ],
+    [
+        'erp-fundamentals',
+        'cert-erp-fund.svg',
+        '1C:ERP',
+        'Fundamentals',
+        '2026-01-22',
+        '2028-01-22',
+    ],
+    [
+        'erp-consultant',
+        'cert-erp-consultant.svg',
+        '1C:ERP',
+        'Consultant',
+        '2026-03-16',
+        '2028-03-16',
+    ],
+    [
+        'onboarding',
+        'cert-onboarding.svg',
+        '1Ci',
+        'Onboarding',
+        '2026-04-08',
+        '2028-04-08',
+    ],
+]
+    .map(([id, asset, product, qualification, startDate, endDate]) => ({
+        id,
+        asset,
+        product,
+        qualification,
+        startDate,
+        endDate,
+        completed: completedCertificateIds.has(id),
+    }))
+    .sort((a, b) => Number(b.completed) - Number(a.completed));
+const certificateDateFormatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Moscow',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+});
+function certificateItems(records) {
+    return records
+        .map(
+            ({ id, asset, product, qualification, completed }) => `
+        <button type="button" class="certificate" data-action="certificate-info"
+            data-certificate="${id}" data-completed="${completed}" aria-haspopup="dialog"
+            aria-controls="contact-info-popover" aria-expanded="false"
+            aria-label="${esc(product)} ${esc(qualification)}: ${
+                completed ? 'Certified' : 'Not certified'
+            }">
+            <img class="cert-symbol" src="assets/certs/${asset}" alt="" width="72" height="66">
+        </button>`,
+        )
+        .join('');
+}
+function certificatesPage() {
     return shell(`
-    <div class="page-heading">
-      <div>
-        <h1>Hello, ${esc(profile.first)}!</h1>
-        <p>Your services, certifications, and latest updates at a glance.</p>
-      </div>
-      <button type="button" class="btn primary"
-        data-action="store">${ico('store')}Browse Store</button>
-    </div>
-
-    <div class="stats">
-      ${[
-          ['award', '10', 'Certificates'],
-          ['file', '—', 'Your purchases'],
-          ['bell', '2', 'New notifications'],
-          ['shield', partnerLinked ? 'Linked' : 'Unlinked', 'Partner status'],
-      ]
-          .map(
-              ([icon, value, label]) => `
-        <div class="card stat">
-          <div class="icon-box">${ico(icon)}</div>
-          <div>
-            <strong ${
-                value === 'Linked' ? 'style="font-size:20px"' : ''
-            }>${value}</strong>
-            <small>${label}</small>
-          </div>
-        </div>`,
-          )
-          .join('')}
-    </div>
-
-    ${
-        theme === 'corporate'
-            ? `<div class="dashboard-overview">${profileCard()}${notificationsCard()}</div>`
-            : ''
-    }
-    <div class="dashboard-grid">
-      <div class="dashboard-main">
-        <section class="card cert-card">
+        <div class="page-heading"><div><h1>My Certificates</h1>
+            <p>Your completed certifications and available levels.</p></div>
+            <span class="badge success">${ico('award')}${
+                certificateRecords.length
+            } certificates</span>
+        </div>
+        <section class="card certificates-page" aria-label="Your certificates">
+            <div class="certificates">${certificateItems(
+                certificateRecords,
+            )}</div>
+        </section>`);
+}
+function faqCard(extraClass = '') {
+    return `<section class="card faq-card ${esc(extraClass)}">
           <div class="card-heading">
-            <h2>My Certificates</h2>
-            <span class="badge success">${ico('award')}10 certificates</span>
+            <h2>Frequently Asked Questions</h2>
+            <button type="button" class="text-button"
+              data-action="guide">Purchase Guide</button>
           </div>
-
-          <div class="cert-layout">
-            <div class="certificates">
-              ${certificates
-                  .map(
-                      (name) => `
-                <div class="certificate">
-                  <div class="cert-symbol">${ico('award')}</div>
-                  <strong>${name}</strong>
-                </div>`,
-                  )
-                  .join('')}
-            </div>
-
-            <div class="cert-action">
-              <h3>Take your next career step</h3>
-              <p>View your certification attempts or explore a new qualification.</p>
-              <button type="button" class="btn primary small"
-                data-action="certification">Certification Attempts ${ico(
-                    'arrow',
-                )}</button>
-              <button type="button" class="text-button"
-                data-action="attempts">Get more attempts</button>
-            </div>
-          </div>
-
-          <div class="academy-banner">
-            <span><strong>1Ci Academy</strong> · Training and certification preparation</span>
-            <button type="button" class="text-button flex"
-              data-action="academy">Learn more ${ico('external')}</button>
-          </div>
-        </section>
-
-        ${theme === 'corporate' ? newsCard() : notificationsCard()}
-
-        <section class="card support-card">
+          ${[
+              [
+                  'Where can I place an order?',
+                  'Use the Store navigation item. The store is represented by a demo dialog in this reference.',
+              ],
+              [
+                  'Where can I find my purchases and licenses?',
+                  'My Purchases is the designated entry point. Detailed purchase screens are outside this reference.',
+              ],
+              [
+                  'Where can I find my certificates?',
+                  'Your certificates are displayed in the My Certificates card on this dashboard.',
+              ],
+              [
+                  'How can I contact support?',
+                  "Select Submit a Request or use your personal manager's email address.",
+              ],
+          ]
+              .map(
+                  ([question, answer]) => `
+            <details><summary>${question}</summary><p>${answer}</p></details>`,
+              )
+              .join('')}
+        </section>`;
+}
+function supportServicesCard(extraClass = '') {
+    return `<section class="card support-card ${esc(extraClass)}">
           <div class="card-heading"><h2>Support Services</h2>${ico(
               'support',
           )}</div>
@@ -1500,47 +1599,160 @@ function dashboardPage() {
             </button>`,
               )
               .join('')}
+        </section>`;
+}
+function academyIntroCard() {
+    return `<section class="card new-dashboard-academy" aria-labelledby="academy-intro-title">
+        <h2 id="academy-intro-title">1Ci Academy</h2>
+        <div class="academy-intro-layout">
+            <div class="academy-intro-content">
+                <p>Explore our comprehensive range of courses designed for Developers, Engineers, and Consultants.</p>
+                <ul class="academy-benefits">
+                    <li>${ico(
+                        'award',
+                    )}<span>From Junior to Expert levels</span></li>
+                    <li>${ico(
+                        'grid',
+                    )}<span>Hands-on architecture &amp; ERP insights</span></li>
+                    <li>${ico(
+                        'shield',
+                    )}<span>Official 1Ci certification</span></li>
+                </ul>
+                <button type="button" class="btn primary small" data-action="start-education">Start education</button>
+            </div>
+            <img class="academy-intro-illustration" src="assets/overview.svg" alt="" width="230" height="150">
+        </div>
+    </section>`;
+}
+function getStartedCard() {
+    return `<div class="card new-dashboard-get-started">
+        <section aria-labelledby="new-dashboard-partner-title">
+            <h2 id="new-dashboard-partner-title">Start your business with 1Ci</h2>
+            <p>Become a 1Ci partner to launch your business automation projects on 1C technologies.</p>
+            <a class="text-button new-dashboard-more-link" href="https://www.1ci.com/partners/" target="_blank" rel="noopener noreferrer"><span>Learn more about 1Ci Partner Program</span>${ico(
+                'external',
+            )}</a>
+            <button type="button" class="btn primary small" data-action="request-partner-status">Request Partner Status</button>
+        </section>
+        <section aria-labelledby="new-dashboard-certification-title">
+            <h2 id="new-dashboard-certification-title">Get Certification</h2>
+            <p>Become a certified specialist and benefit from a permanent 10% discount on the 1C:Enterprise License.</p>
+            <a class="text-button new-dashboard-more-link" href="https://academy.1ci.com/" target="_blank" rel="noopener noreferrer"><span>Learn more about education and certification</span>${ico(
+                'external',
+            )}</a>
+            <button type="button" class="btn primary small" data-action="certification">Buy a Certification Attempt</button>
+        </section>
+    </div>`;
+}
+function newDashboardPage() {
+    const faq = faqCard('new-dashboard-faq');
+    const support = supportServicesCard('new-dashboard-support');
+    const start = getStartedCard();
+    const academy = academyIntroCard();
+    const cards =
+        pageOptions.dashboardLayout === 'balanced'
+            ? [start, academy, faq, support]
+            : [faq, start, support, academy];
+    return shell(
+        `<div class="new-dashboard" data-block-layout="${
+            pageOptions.dashboardLayout
+        }" aria-label="Dashboard">${cards.join('')}</div>`,
+    );
+}
+function dashboardPage() {
+    if (pageOptions.dashboardVersion === 'new') return newDashboardPage();
+    const content = `
+    <div class="page-heading dashboard-heading">
+      <div>
+        <h1>Hello, ${esc(profile.first)}!</h1>
+        <p>Your services, certifications, and latest updates at a glance.</p>
+      </div>
+      <div class="dashboard-actions">
+        <button type="button" class="btn" data-action="orders">${ico(
+            'file',
+        )}My Orders</button>
+        <button type="button" class="btn primary" data-action="store">${ico(
+            'store',
+        )}Browse Store</button>
+      </div>
+    </div>
+
+    <div class="dashboard-overview">
+      ${profileCard()}
+      <div class="dashboard-updates">
+        ${notificationsCard()}
+      </div>
+    </div>
+    <div class="dashboard-grid">
+      <div class="dashboard-main">
+        <section class="card cert-card">
+          <div class="card-heading">
+            <h2>My Certificates</h2>
+            <button type="button" class="text-button" data-go="certificates">View all ${
+                certificateRecords.length
+            } certificates ${ico('arrow')}</button>
+          </div>
+
+          <div class="cert-layout">
+            <div class="certificates">
+              ${certificateItems(certificateRecords)}
+            </div>
+
+            <div class="cert-action">
+              <h3>Take your next career step</h3>
+              <p>View your certification attempts or explore a new qualification.</p>
+              <button type="button" class="btn primary small"
+                data-action="certification">Certification Attempts ${ico(
+                    'arrow',
+                )}</button>
+              <button type="button" class="text-button"
+                data-action="attempts">Get more attempts</button>
+            </div>
+          </div>
+
+          <div class="academy-banner">
+            <span><strong>1Ci Academy</strong> · Training and certification preparation</span>
+            <button type="button" class="text-button flex"
+              data-action="academy">Learn more ${ico('external')}</button>
+          </div>
         </section>
 
-        <section class="card faq-card">
-          <div class="card-heading">
-            <h2>Frequently Asked Questions</h2>
-            <button type="button" class="text-button"
-              data-action="guide">Purchase Guide</button>
-          </div>
-          ${[
-              [
-                  'Where can I place an order?',
-                  'Use the Store navigation item. The store is represented by a demo dialog in this reference.',
-              ],
-              [
-                  'Where can I find my purchases and licenses?',
-                  'My Purchases is the designated entry point. Detailed purchase screens are outside this reference.',
-              ],
-              [
-                  'Where can I find my certificates?',
-                  'Your certificates are displayed in the My Certificates card on this dashboard.',
-              ],
-              [
-                  'How can I contact support?',
-                  "Select Submit a Request or use your personal manager's email address.",
-              ],
-          ]
-              .map(
-                  ([question, answer]) => `
-            <details><summary>${question}</summary><p>${answer}</p></details>`,
-              )
-              .join('')}
-        </section>
+        ${newsCard()}
+
+        ${supportServicesCard()}
+
+        ${faqCard()}
       </div>
 
-      ${
-          theme !== 'corporate'
-              ? `<aside class="stack dashboard-aside">${profileCard()}${newsCard()}</aside>`
-              : ''
-      }
-    </div>`);
+    </div>`;
+    return shell(
+        device === 'desktop-wide'
+            ? `<div class="dashboard-wide-layout"><div class="dashboard-wide-primary">${content}</div><aside class="dashboard-wide-rail" aria-label="News and support"></aside></div>`
+            : content,
+    );
 }
+const wideDashboardMedia = matchMedia('(min-width: 1600px)');
+function syncDashboardRail() {
+    const layout = document.querySelector('.dashboard-wide-layout');
+    if (!layout) return;
+    const main = layout.querySelector('.dashboard-main');
+    const rail = layout.querySelector('.dashboard-wide-rail');
+    const news = layout.querySelector('.news-card');
+    const support = layout.querySelector('.support-card');
+    if (!main || !rail || !news || !support) return;
+    if (wideDashboardMedia.matches) rail.append(news, support);
+    else {
+        const faq = main.querySelector('.faq-card');
+        main.insertBefore(news, faq);
+        main.insertBefore(support, faq);
+    }
+}
+wideDashboardMedia.addEventListener('change', () => {
+    if (embedded && page === 'dashboard') {
+        syncDashboardRail();
+        applyPageSettings();
+    }
+});
 
 /* =========================
    ACCOUNT
@@ -1607,7 +1819,7 @@ function profileContent() {
         <div>
           <small class="muted">Email address</small>
           <div class="flex" style="margin-top:5px;flex-wrap:wrap">
-            <strong>alex.user@example.invalid</strong><span class="badge success">Verified</span>
+            <strong>eego@1ci.com</strong><span class="badge success">Verified</span>
           </div>
         </div>
         <button type="button" class="btn small"
@@ -1623,7 +1835,7 @@ function profileContent() {
 
       <div class="data-grid">
         ${[
-            ['Company', 'Demo Partner Company'],
+            ['Company', 'test'],
             ['Number of employees', 'Not provided'],
             ['Year of foundation', 'Not provided'],
             ['Website', 'Not provided'],
@@ -1653,6 +1865,77 @@ function profileContent() {
     </section>`;
 }
 
+let profilePhotoUrl = null;
+let photoSelectionRevision = 0;
+function userAvatarContent() {
+    return profilePhotoUrl
+        ? `<img class="user-avatar-photo" src="${esc(profilePhotoUrl)}" alt="">`
+        : initials();
+}
+function photoMenuActions() {
+    return profilePhotoUrl
+        ? `<button type="button" data-action="choose-photo">${ico(
+              'edit',
+          )}Replace Photo</button>
+           <button type="button" data-action="remove-photo">${ico(
+               'trash',
+           )}Remove Photo</button>`
+        : `<button type="button" data-action="choose-photo">${ico(
+              'folder',
+          )}Add Photo</button>`;
+}
+function accountPhotoControl() {
+    return `<details class="reference-popup account-photo-menu">
+        <summary class="photo-menu-trigger" aria-label="Manage profile photo">
+            <span class="avatar large" data-user-avatar>${userAvatarContent()}</span>
+            <span class="photo-camera"><img src="assets/camera.svg" alt="" width="20" height="20"></span>
+        </summary>
+        <div class="popup-panel photo-menu-panel">${photoMenuActions()}</div>
+        <input id="profile-photo-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    </details>`;
+}
+function syncProfilePhoto() {
+    document.querySelectorAll('[data-user-avatar]').forEach((avatar) => {
+        avatar.innerHTML = userAvatarContent();
+    });
+    const panel = document.querySelector('.photo-menu-panel');
+    if (panel) panel.innerHTML = photoMenuActions();
+}
+document.addEventListener('change', async (event) => {
+    const input = event.target;
+    if (input.id !== 'profile-photo-input') return;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    const revision = ++photoSelectionRevision;
+    if (
+        !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(
+            file.type,
+        )
+    ) {
+        toast('Please choose a PNG, JPEG, WebP, or GIF image.');
+        return;
+    }
+    const candidate = URL.createObjectURL(file);
+    try {
+        const preview = new Image();
+        preview.src = candidate;
+        await preview.decode();
+        if (revision !== photoSelectionRevision) {
+            URL.revokeObjectURL(candidate);
+            return;
+        }
+        if (profilePhotoUrl) URL.revokeObjectURL(profilePhotoUrl);
+        profilePhotoUrl = candidate;
+        syncProfilePhoto();
+    } catch {
+        URL.revokeObjectURL(candidate);
+        if (revision === photoSelectionRevision)
+            toast(
+                'This image could not be opened. Please choose another photo.',
+            );
+    }
+});
 function accountPage() {
     return shell(`
     <div class="page-heading">
@@ -1668,11 +1951,11 @@ function accountPage() {
       <div class="stack">
         <section class="card">
           <div class="account-summary">
-            <div class="avatar large">${initials()}</div>
+            ${accountPhotoControl()}
             <div>
               <h2>${fullName()}</h2>
               <div class="summary-meta muted">
-                <span>Account ID 100001</span><span>Registered: 1 January 2024</span>
+                <span>Account ID 299</span><span>Registered: 19 August 2019</span>
               </div>
               ${
                   partnerLinked
@@ -1719,7 +2002,7 @@ function accountPage() {
 
           <small class="muted">Sales support manager</small>
           <button type="button" class="text-button" data-action="manager"
-            style="display:block;margin-top:5px">Sam Manager</button>
+            style="display:block;margin-top:5px">Nina Sitkina</button>
 
           <hr>
           <button type="button" class="btn small"
@@ -1751,6 +2034,8 @@ function render() {
     document.body.dataset.embedded = String(embedded);
     document.body.dataset.position = loginPosition;
     document.body.dataset.page = page;
+    document.body.dataset.device = device;
+    document.body.dataset.dashboardVersion = pageOptions.dashboardVersion;
     applyLayoutOptions();
 
     if (page === 'login') {
@@ -1772,6 +2057,8 @@ function render() {
             ? loginPage()
             : page === 'dashboard'
             ? dashboardPage()
+            : page === 'certificates'
+            ? certificatesPage()
             : page === 'account'
             ? accountPage()
             : page === 'distributives'
@@ -1796,6 +2083,7 @@ function render() {
     if (contactPopoverTrigger && !contactPopoverTrigger.isConnected)
         dismissContactPopover();
     if (drawerOpener && !drawerOpener.isConnected) dismissCorporateDrawer();
+    syncDashboardRail();
     applyPageSettings();
     enhanceSelects(document.getElementById('app'));
     setupFilterResetTooltips(document.getElementById('app'));
@@ -2118,9 +2406,13 @@ function openContactPopover(title, content, trigger) {
         });
         document.body.append(contactPopover);
     }
+    contactPopover.classList.toggle(
+        'certificate-popover',
+        trigger.dataset.action === 'certificate-info',
+    );
     contactPopover.innerHTML = `<div class="contact-popover-content"><div class="dialog-heading"><h2 id="contact-popover-title">${esc(
         title,
-    )}</h2><button type="button" class="icon-button" data-close-contact aria-label="Close contact information">×</button></div>${content}</div>`;
+    )}</h2><button type="button" class="icon-button" data-close-contact aria-label="Close information">×</button></div>${content}</div>`;
     contactPopover.hidden = false;
     contactPopover.style.pointerEvents = '';
     if (contactPopover.showPopover && !contactPopover.matches(':popover-open'))
@@ -2165,7 +2457,7 @@ function drawerAttachment(trigger) {
     if (sidebar && sidebar.getBoundingClientRect().width > 0)
         return {
             anchor: sidebar,
-            placement: theme === 'studio' ? 'bottom' : 'left',
+            placement: 'left',
         };
     const header = trigger?.closest('.topbar');
     if (header && header.getBoundingClientRect().height > 0)
@@ -2258,10 +2550,7 @@ function attachDrawer(attachment) {
 let drawerToken = 0;
 let drawerClosing;
 function corporateCompact() {
-    return (
-        theme === 'corporate' &&
-        matchMedia('(max-width: 1024px), (max-height: 480px)').matches
-    );
+    return matchMedia('(max-width: 1024px), (max-height: 480px)').matches;
 }
 function dismissCorporateDrawer() {
     drawerToken++;
@@ -2522,36 +2811,88 @@ function info(title, text) {
    ========================= */
 
 function handleAction(action, button) {
+    if (action === 'start-education') {
+        window.open(
+            'https://academy.1ci.com/',
+            '_blank',
+            'noopener,noreferrer',
+        );
+        return;
+    }
+    if (action === 'choose-photo') {
+        document.getElementById('profile-photo-input')?.click();
+        return;
+    }
+    if (action === 'remove-photo') {
+        photoSelectionRevision++;
+        if (profilePhotoUrl) URL.revokeObjectURL(profilePhotoUrl);
+        profilePhotoUrl = null;
+        syncProfilePhoto();
+        return;
+    }
+    if (action === 'certificate-info') {
+        const certificate = certificateRecords.find(
+            ({ id }) => id === button.dataset.certificate,
+        );
+        if (!certificate) return;
+        const { asset, product, qualification, completed, startDate } =
+            certificate;
+        openContactPopover(
+            `${product} ${qualification}`,
+            `
+            <div class="certificate-info">
+                <img class="certificate-info-icon" src="assets/certs/${asset}" alt="" width="88" height="80">
+                <div class="certificate-info-body">
+                ${
+                    completed
+                        ? `<p class="muted">Certified on <time datetime="${startDate}">${certificateDateFormatter.format(
+                              new Date(`${startDate}T12:00:00Z`),
+                          )}</time></p>
+                       <a class="certificate-info-link" href="?page=certificates" data-go="certificates">View all certificates ›</a>`
+                        : `<p class="muted">You are not certified at this level</p>
+                       <a class="certificate-info-link" href="#certification-attempts" data-action="certification">Buy certification attempt ›</a>`
+                }
+                </div>
+            </div>`,
+            button,
+        );
+        return;
+    }
     if (action === 'partner-info' || action === 'manager') {
         const partner = action === 'partner-info';
         const contact = partner
             ? {
-                  name: 'Demo Partner',
-                  email: 'demo.partner@example.invalid',
-                  phone: '+1 202 555 0100',
+                  name: 'Partner Company',
+                  email: 'test@1ci.app',
+                  phone: '+1 202 555 0148',
               }
-            : { name: 'Sam Manager', email: 'sam.manager@example.invalid' };
+            : { name: 'Nina Sitkina', email: 'nina.sitkina@1ci.com' };
         openContactPopover(
             partner ? 'Your 1Ci Partner' : 'Sales Support Manager',
             `
             <div class="contact-dialog-heading"><div class="avatar large">${
-                partner ? 'DP' : 'SM'
+                partner ? 'PC' : 'NS'
             }</div><div><h3>${esc(contact.name)}</h3><span class="muted">${
-                partner
-                    ? 'Connected partner · ID 100002'
-                    : 'Your personal contact'
+                partner ? 'Connected partner' : 'Your personal contact'
             }</span></div></div>
-            <dl class="contact-details"><div><dt>Name</dt><dd>${esc(
+            <dl class="contact-details${
+                partner ? ' partner-contact-details' : ''
+            }"><div><dt>Name</dt><dd>${esc(
                 contact.name,
             )}</dd></div><div><dt>Email</dt><dd><a href="mailto:${
                 contact.email
             }">${esc(contact.email)}</a></dd></div>${
                 partner
-                    ? `<div><dt>Phone</dt><dd><a href="tel:+12025550100">${esc(
+                    ? `<div><dt>Account ID</dt><dd>6363</dd></div><div><dt>Phone</dt><dd><a href="tel:+12025550148">${esc(
                           contact.phone,
                       )}</a></dd></div>`
                     : ''
             }</dl>
+            ${
+                partner
+                    ? '<button type="button" class="btn small partner-details-action" data-go="partnership">View partnership</button>'
+                    : ''
+            }
             `,
             button,
         );
@@ -2674,7 +3015,7 @@ function handleAction(action, button) {
         <div class="field">
           <label for="request-email">Email address</label>
           <input id="request-email" type="email" autocomplete="email"
-            placeholder="name@example.invalid" required>
+            placeholder="name@company.com" required>
         </div>
         <div class="dialog-actions">
           <button type="button" class="btn" data-close>Cancel</button>
@@ -2824,6 +3165,10 @@ function handleAction(action, button) {
     }
 
     const messages = {
+        'request-partner-status': [
+            'Request Partner Status',
+            'Your request to join the 1Ci Partner Program is represented here in the prototype.',
+        ],
         'store-apps': [
             'Apps & Platform',
             'Browse 1Ci applications and platform products.',
@@ -3084,6 +3429,9 @@ document.addEventListener('click', async (event) => {
         return;
     }
     if (target.hasAttribute('data-go')) {
+        event.preventDefault();
+        if (target.closest('#contact-info-popover'))
+            await closeContactPopover();
         if (target.closest('#modal') && !(await closeModal())) return;
         if (target.dataset.notificationFilter === 'unread') {
             pageOptions.notificationFilter = 'unread';
@@ -3102,7 +3450,7 @@ document.addEventListener('click', async (event) => {
     for (const [attribute, values] of [
         ['theme', availableThemes],
         ['palette', Object.keys(paletteNames)],
-        ['device', ['mobile', 'tablet', 'desktop']],
+        ['device', availableDevices],
         ['position', ['top', 'center', 'between']],
     ]) {
         if (
@@ -3110,7 +3458,6 @@ document.addEventListener('click', async (event) => {
             values.includes(target.dataset[attribute])
         ) {
             const value = target.dataset[attribute];
-            if (attribute === 'theme') theme = value;
             if (attribute === 'palette') palette = value;
             if (attribute === 'device') device = value;
             if (attribute === 'position') loginPosition = value;
@@ -3155,6 +3502,8 @@ document.addEventListener('click', async (event) => {
 
     if (target.hasAttribute('data-action')) {
         event.preventDefault();
+        if (target.closest('#contact-info-popover'))
+            await closeContactPopover();
         handleAction(target.dataset.action, target);
     }
 });
@@ -3316,7 +3665,7 @@ modal.addEventListener('close', () => {
 /* Shared navigation popups and additional reference screens. */
 function personalMenuContent() {
     const current = (id) => (page === id ? 'aria-current="page"' : '');
-    return `        <div class="popup-identity"><strong>${fullName()}</strong><small class="muted">alex.user@example.invalid</small></div>
+    return `        <div class="popup-identity" style="color: var(--text);"><strong>${fullName()}</strong><small class="muted">eego@1ci.com</small></div>
         <button type="button" data-go="account" ${current('account')}>${ico(
             'user',
         )}Account</button>
@@ -3339,10 +3688,10 @@ function personalMenu(location = 'header') {
     );
     const sidebar = location === 'sidebar';
     const trigger = sidebar
-        ? `<summary class="sidebar-user flex" aria-label="Open personal menu for ${fullName()}" title="Personal menu"><span class="avatar">${initials()}</span><span class="sidebar-user-details"><strong>${esc(
+        ? `<summary class="sidebar-user flex" aria-label="Open personal menu for ${fullName()}" title="Personal menu"><span class="avatar" data-user-avatar>${userAvatarContent()}</span><span class="sidebar-user-details"><strong>${esc(
               profile.first,
           )}</strong><small>Community member</small></span></summary>`
-        : `<summary class="avatar" aria-label="Personal menu">${initials()}</summary>`;
+        : `<summary class="avatar" aria-label="Personal menu" data-user-avatar>${userAvatarContent()}</summary>`;
     return `<details class="reference-popup personal-popup ${
         sidebar ? 'sidebar-personal-popup' : ''
     }" data-personal-active="${personalPageActive}">${trigger}<nav class="popup-panel" aria-label="${
@@ -3375,15 +3724,7 @@ function languageMenu() {
         language[1]
     }" alt="" width="21" height="15" aria-hidden="true"><span>${esc(
         name,
-    )}</span></summary><div class="popup-panel language-panel"><strong class="popup-label">Region & language</strong><div class="${
-        theme === 'minimal' ? 'language-cards' : 'language-list'
-    }">${languageOptions(theme === 'minimal' ? 'cards' : 'list')}</div>${
-        theme === 'studio'
-            ? `<button class="text-button mt" data-action="language-dialog">Explore regional experiences ${ico(
-                  'arrow',
-              )}</button>`
-            : ''
-    }</div></details>`;
+    )}</span></summary><div class="popup-panel language-panel"><strong class="popup-label">Region & language</strong><div class="language-list">${languageOptions()}</div></div></details>`;
 }
 
 const distributives = [
@@ -3838,7 +4179,7 @@ function distributivesPage() {
     return shell(`<div class="page-heading"><div><h1>Distributives</h1><p>Product releases, installation packages, and components.</p></div></div>
         <section class="downloads-banner"><div><h2>Distributives</h2><p>1Ci products and the 1C:Enterprise development platform are downloaded separately from each other.</p></div><div><h2>${ico(
             'support',
-        )} Questions?</h2><p>In case of arising questions please contact us at <a href="mailto:partners@example.invalid">partners@example.invalid</a>.</p></div></section>
+        )} Questions?</h2><p>In case of arising questions please contact us at <a href="mailto:partner@1ci.com">partner@1ci.com</a>.</p></div></section>
         <form class="download-filters" onsubmit="return false"><div class="filter-fields download-filter-fields"><div class="field search-field"><label for="product-search">Product / Version / Distributive / Component</label><input type="search" id="product-search" placeholder="Search product"></div><div class="period-filter">${datePeriodControl(
             'distributives',
             'release-from',
@@ -3917,7 +4258,7 @@ function supportPage() {
             <p>Read more about <button type="button" class="text-button" data-action="policies">Support policy</button></p>
             <p>For 1C:Drive German, Polish, Turkish, and other non-English editions see <button type="button" class="text-button" data-action="drive-policies">1C:Drive Editions Support Policy</button></p>
         </section>
-        <section data-support-section="contacts" aria-labelledby="support-contacts-heading"><h2 id="support-contacts-heading">Contacts</h2><p>Website: <a href="https://support.1ci.com/" target="_blank" rel="noopener noreferrer">support.1ci.com</a></p><p>Email: <a href="mailto:support@example.invalid">support@example.invalid</a></p></section>
+        <section data-support-section="contacts" aria-labelledby="support-contacts-heading"><h2 id="support-contacts-heading">Contacts</h2><p>Website: <a href="https://support.1ci.com/" target="_blank" rel="noopener noreferrer">support.1ci.com</a></p><p>Email: <a href="mailto:support@1ci.com">support@1ci.com</a></p></section>
     </article>`);
 }
 
@@ -4024,12 +4365,16 @@ function syncDownloadLayout() {
 }
 
 function applyPageSettings() {
+    document.body.dataset.dashboardVersion = pageOptions.dashboardVersion;
     document.body.dataset.dashboardWidgets = pageOptions.dashboardWidgets;
     document.body.dataset.accountSections = pageOptions.accountSections;
     syncDownloadLayout();
-    if (page === 'dashboard' && pageOptions.dashboardWidgets !== 'all') {
+    if (
+        page === 'dashboard' &&
+        pageOptions.dashboardVersion !== 'new' &&
+        pageOptions.dashboardWidgets !== 'all'
+    ) {
         const certificates = pageOptions.dashboardWidgets === 'certificates';
-        document.querySelector('.stats').hidden = true;
         document.querySelectorAll('.content .card').forEach((card) => {
             card.hidden = certificates
                 ? !card.matches('.cert-card')
@@ -4037,7 +4382,7 @@ function applyPageSettings() {
         });
         document
             .querySelectorAll(
-                '.dashboard-overview, .dashboard-main, .dashboard-aside, .dashboard-grid',
+                '.dashboard-updates, .dashboard-overview, .dashboard-main, .dashboard-aside, .dashboard-grid, .dashboard-wide-rail',
             )
             .forEach((group) => {
                 group.hidden = !group.querySelector('.card:not([hidden])');
@@ -4209,8 +4554,8 @@ function partnershipPage() {
         )}${partnerLinked ? 'Linked' : 'Not connected'}</span></div>
         ${
             partnerLinked
-                ? `<h3>Demo Partner <span class="muted">(demo.partner@example.invalid)</span></h3><dl class="partner-details"><div><dt>Connected Partner ID</dt><dd>100002</dd></div><div><dt>Date</dt><dd>01.01.2025</dd></div></dl><button type="button" class="btn" data-action="unlink">Cancel connection</button>`
-                : `<p class="muted">Ask your partner for their account ID to connect your accounts.</p><form id="partner-form"><div class="field"><label for="partner-id">Partner account ID</label><input id="partner-id" inputmode="numeric" pattern="100002" title="Use demo partner ID 100002" placeholder="100002" required></div><small class="muted">Demo partner ID: 100002</small><div class="dialog-actions"><button class="btn primary" type="submit">Connect partner</button></div></form>`
+                ? `<h3>tester testerLastName <span class="muted">(test@1ci.app)</span></h3><dl class="partner-details"><div><dt>Connected Partner ID</dt><dd>6363</dd></div><div><dt>Date</dt><dd>24.11.2025</dd></div></dl><button type="button" class="btn" data-action="unlink">Cancel connection</button>`
+                : `<p class="muted">Ask your partner for their account ID to connect your accounts.</p><form id="partner-form"><div class="field"><label for="partner-id">Partner account ID</label><input id="partner-id" inputmode="numeric" pattern="6363" title="Use demo partner ID 6363" placeholder="6363" required></div><small class="muted">Demo partner ID: 6363</small><div class="dialog-actions"><button class="btn primary" type="submit">Connect partner</button></div></form>`
         }
     </section>`);
 }
@@ -4248,8 +4593,8 @@ function uiKitPage() {
         )}</button><button type="button" class="btn primary lg" data-action="sample-download">LG ${ico(
             'arrow',
         )}</button></div><div class="kit-samples"><button type="button" class="btn sm" data-action="sample-download">Small</button><button type="button" class="btn" data-action="sample-download">Default (no size class)</button><button type="button" class="btn lg" data-action="sample-download">Large</button></div></section>
-        <section class="card form-controls-kit" data-kit-section="forms"><h2>Form controls</h2><div class="form-stack"><div class="field"><label for="kit-email">Email address</label><input id="kit-email" type="email" placeholder="name@example.invalid"></div><div class="field"><label for="kit-disabled">Disabled field</label><input id="kit-disabled" value="Read-only example" disabled></div><div class="field"><label for="kit-select">Product</label><select id="kit-select"><option>1C:Drive</option><option>1C:Enterprise</option></select></div><label class="check"><input type="checkbox" checked>Receive product updates</label><p class="field-error">Example validation: please enter a valid email.</p></div></section>
-        <section class="card"><h2>Badges, avatars & icons</h2><div class="kit-samples"><span class="badge">Community member</span><span class="badge success">Linked</span><span class="badge kit-warning">Pending</span><div class="avatar">AU</div><div class="avatar large">SM</div>${[
+        <section class="card form-controls-kit" data-kit-section="forms"><h2>Form controls</h2><div class="form-stack"><div class="field"><label for="kit-email">Email address</label><input id="kit-email" type="email" placeholder="name@company.com"></div><div class="field"><label for="kit-disabled">Disabled field</label><input id="kit-disabled" value="Read-only example" disabled></div><div class="field"><label for="kit-select">Product</label><select id="kit-select"><option>1C:Drive</option><option>1C:Enterprise</option></select></div><label class="check"><input type="checkbox" checked>Receive product updates</label><p class="field-error">Example validation: please enter a valid email.</p></div></section>
+        <section class="card"><h2>Badges, avatars & icons</h2><div class="kit-samples"><span class="badge">Community member</span><span class="badge success">Linked</span><span class="badge kit-warning">Pending</span><div class="avatar">EE</div><div class="avatar large">NS</div>${[
             'home',
             'store',
             'bag',
@@ -4266,7 +4611,7 @@ function uiKitPage() {
             )}</div><hr><div class="notice">Informational notice with a clear next step.</div><div class="demo-plaque">${ico(
             'shield',
         )}Demo sign-in · No credentials are sent</div></section>
-        <section class="card kit-wide"><h2>Personal menu & language selection</h2><p class="muted">Corporate uses a compact list; Minimal uses language cards; Studio adds a regional chooser. All choices preview selection without translating sample content.</p><div class="kit-samples">${personalMenu()}${languageMenu()}<button class="btn" data-action="language-dialog">Open regional chooser</button></div><div class="language-showcase"><div><h3>Compact popup list</h3>${languageOptions()}</div><div><h3>Language cards</h3><div class="language-cards">${languageOptions(
+        <section class="card kit-wide"><h2>Personal menu & language selection</h2><p class="muted">Corporate uses a compact list of regions and languages. All choices preview selection without translating sample content.</p><div class="kit-samples">${personalMenu()}${languageMenu()}<button class="btn" data-action="language-dialog">Open regional chooser</button></div><div class="language-showcase"><div><h3>Compact popup list</h3>${languageOptions()}</div><div><h3>Language cards</h3><div class="language-cards">${languageOptions(
             'cards',
         )}</div></div></div></section>
         <section class="card"><h2>Dialogs & feedback</h2><div class="kit-samples"><button class="btn" data-action="notifications">Notification dialog</button><button class="btn" data-action="support">Form dialog</button><button class="btn danger" data-action="unlink">Confirmation dialog</button><button class="btn" data-action="sample-download">Show toast</button></div></section>

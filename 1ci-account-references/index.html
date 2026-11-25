@@ -332,12 +332,10 @@
         </div>
 
         <div class="toolbar">
-            <div class="field">
+            <div class="field" hidden>
                 <label for="concept">Layout style</label>
                 <select id="concept">
                     <option value="corporate">01 Corporate</option>
-                    <option value="studio">02 Studio</option>
-                    <option value="minimal">03 Executive Minimal</option>
                 </select>
             </div>
 
@@ -346,6 +344,7 @@
                 <select id="page">
                     <option value="login">Sign In</option>
                     <option value="dashboard">Dashboard</option>
+                    <option value="certificates">My Certificates</option>
                     <option value="account">Account profile</option>
                     <option value="distributives">Distributives</option>
                     <option value="partnership">Partnership</option>
@@ -470,16 +469,6 @@
             name: "Corporate",
             description: "Side navigation and a spacious dashboard layout.",
             defaultUrl: projectUrl
-        },
-        minimal: {
-            name: "Executive Minimal",
-            description: "Horizontal navigation, generous spacing, and simple component shapes.",
-            defaultUrl: projectUrl
-        },
-        studio: {
-            name: "Studio",
-            description: "Bottom navigation dock and a bento dashboard layout.",
-            defaultUrl: projectUrl
         }
     };
 
@@ -520,8 +509,7 @@
             device: previewDevice,
             ...pagePreviewSettings
         });
-        const entry = conceptSelect.value === "studio" ? "corporate" : conceptSelect.value;
-        return `${entry}.html?${params.toString()}`;
+        return `corporate.html?${params.toString()}`;
     }
 
     function updatePreview() {
@@ -638,6 +626,8 @@
             const childPage = state.page;
             const childLayout = state.layout;
             const settingChoices = {
+                dashboardVersion: ["existing", "new"],
+                dashboardLayout: ["sidebar", "balanced"],
                 dashboardWidgets: ["all", "certificates", "updates"],
                 accountSections: ["all", "profile", "settings"],
                 downloadFamily: ["drive", "enterprise", "all"],
@@ -646,12 +636,12 @@
                 notificationFilter: ["all", "unread", "read"],
                 kitSection: ["all", "buttons", "forms"],
                 supportSection: ["all", "services", "levels", "contacts"],
-                corporateSidebar: ["classic", "rail", "light"],
+                corporateSidebar: ["classic"],
                 drawerStyle: ["attached", "overlay", "floating"]
             };
-            for (const pageId of ["login", "dashboard", "account", "distributives", "partnership", "notifications", "ui-kit", "support"]) {
+            for (const pageId of ["login", "dashboard", "certificates", "account", "distributives", "partnership", "notifications", "ui-kit", "support"]) {
                 const key = `${pageId.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())}InputOutline`;
-                if (["highlighted", "current"].includes(state[key])) pagePreviewSettings[key] = state[key];
+                if (["highlighted"].includes(state[key])) pagePreviewSettings[key] = state[key];
             }
             for (const key of ["notificationFrom", "notificationTo", "releaseFrom", "releaseTo"]) {
                 if (typeof state[key] === "string" && (state[key] === "" || /^\d{4}-\d{2}-\d{2}$/.test(state[key]))) pagePreviewSettings[key] = state[key];
@@ -661,7 +651,7 @@
             }
 
             if (!concepts[childTheme]) return;
-            if (!["login", "dashboard", "account", "distributives", "partnership", "notifications", "ui-kit", "support"].includes(childPage)) return;
+            if (!["login", "dashboard", "certificates", "account", "distributives", "partnership", "notifications", "ui-kit", "support"].includes(childPage)) return;
             if (!["split", "centered", "clean", "compact"].includes(childLayout)) return;
 
             const conceptChanged = conceptSelect.value !== childTheme;
@@ -671,7 +661,7 @@
             layoutSelect.value = childLayout;
             if (["corporate", "minimal", "portal"].includes(state.palette)) paletteSelect.value = state.palette;
             if (["top", "center", "between"].includes(state.position)) positionSelect.value = state.position;
-            if (["mobile", "tablet", "desktop"].includes(state.device)) previewDevice = state.device;
+            if (["mobile", "tablet", "desktop", "desktop-wide"].includes(state.device)) previewDevice = state.device;
 
             document.getElementById("layout-field").hidden = childPage !== "login";
             document.getElementById("position-field").hidden = childPage !== "login";
